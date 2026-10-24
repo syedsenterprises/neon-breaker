@@ -57,6 +57,46 @@ Open `neon-breaker.html` in any text editor to read or modify it. Levels are def
 - **New power-ups:** add an entry to the power-up definitions (name + color + effect)
 - **Difficulty:** tweak ball speed, paddle width, and level layouts in the same script
 
+## Monetization
+
+`neon-breaker-ads.html` is the same game with ads added — the game script
+is byte-identical to `neon-breaker.html` (verified by diff + `node --check`),
+so gameplay, levels, and power-ups are untouched. Only the page around the
+game changed.
+
+**Ad slots (Google AdSense):**
+
+- **Above the game** and **below the game** — responsive display units.
+  They sit outside the game container, so they can **never overlap the
+  canvas, the pause/mute buttons, or the controls**.
+- Publisher ID: `ca-pub-7363635746119645` (already in the file).
+- **Before you publish:** open the file and replace both
+  `data-ad-slot="0000000000"` placeholders with real ad slot IDs from your
+  AdSense dashboard (Ads → By ad unit → Display ads). Each slot is marked
+  with a `TODO` comment in the file. Until you do this, the units will not
+  serve ads.
+- **Policy rules baked into the layout:** no ads over gameplay, no
+  "click the ad to continue" or any other click incentive, no gating
+  gameplay behind ads. Keep AdSense Auto ads **off** for this page until
+  the two manual slots are verified, so no auto-placed unit can land over
+  the game.
+
+**House-ad strip (always visible):**
+
+Below the bottom ad slot sits a gold-bordered **"From Syed Ventures"**
+strip promoting the author's own Gumroad products — Practice Pack
+($14.99), Math Workbook ($9.99), Cheat Sheets ($7.99). It is labelled as
+the author's own products, not disguised as a Google ad, and it shows
+even when AdSense doesn't fill — so the page always earns attention.
+Links open in a new tab so the game is never interrupted.
+
+**Honest expectation:** AdSense pays only after the account is fully
+approved and the page gets real traffic. An approved account + a game page
+with no visitors earns $0. The house-ad strip is the reliable earner
+here: it converts game players into product buyers regardless of
+AdSense status. See [ADS-SETUP.md](ADS-SETUP.md) for the Blogger embed
+steps and the slot-ID walkthrough.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Free to play, fork, and build on.

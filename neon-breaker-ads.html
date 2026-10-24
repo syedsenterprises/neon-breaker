@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Neon Breaker</title>
+<!-- ================= MONETIZATION (AdSense) =================
+     Publisher: ca-pub-7363635746119645 (Estate Path AdSense account).
+     The two manual ad units below the game (top + bottom slots) are
+     responsive display units. They NEVER overlap the canvas or controls.
+     Auto ads: keep OFF for this page until the manual slots are verified,
+     so no auto-placed unit can land over gameplay. -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7363635746119645"
+     crossorigin="anonymous"></script>
+<!-- OPTIONAL (do NOT use together with the loader above): Auto ads tag.
+     Auto ads is enabled in the AdSense dashboard (Ads > Auto ads), not by
+     a second script tag. If you switch this page fully to auto ads, remove
+     the loader above and uncomment this tag instead:
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7363635746119645" crossorigin="anonymous"></script>
+-->
+<style>
+  /* ============ PAGE / LAYOUT ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #030308;
+    overflow-x: hidden;
+    overflow-y: auto; /* ads version: page scrolls so slots sit above/below the game */
+    font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* ads version: column stacks top ad, game, bottom ad, house strip */
+    padding: 14px 0 28px;
+    background: radial-gradient(1200px 700px at 50% 30%, #0b1030 0%, #030308 60%);
+    min-height: 100vh;
+  }
+  #wrap {
+    position: relative;
+    width: min(96vw, 960px);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 0 42px rgba(0, 229, 255, 0.25), 0 0 120px rgba(255, 0, 200, 0.12), inset 0 0 0 1px rgba(0,229,255,0.25);
+    background: #05060f;
+    touch-action: none; /* let JS handle touch drag without scrolling */
+    cursor: none;       /* hide cursor over the play field */
+  }
+  /* ============ FLOATING BUTTONS (mute / pause) ============ */
+  .hud-btn {
+    position: absolute;
+    top: 8px;
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,229,255,0.5);
+    background: rgba(5,10,25,0.72);
+    color: #9beaff;
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 5;
+  }
+  .hud-btn:hover { background: rgba(0,60,80,0.8); }
+  #muteBtn { right: 8px; }
+  #pauseBtn { right: 56px; }
+  #hint {
+    margin-top: 10px;
+    color: #4d6b8a;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+  /* ============ AD SLOTS (above & below the game only) ============ */
+  /* Slots sit OUTSIDE #wrap, so they can never cover the canvas,
+     the HUD buttons, or the controls. Never position them over #wrap. */
+  .ad-slot {
+    width: min(96vw, 960px);
+    min-height: 90px;
+    margin: 4px 0 12px;
+    background: rgba(10, 18, 38, 0.55);
+    border: 1px dashed rgba(0, 229, 255, 0.18);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .ad-slot-bottom { margin: 12px 0 4px; }
+  /* ============ HOUSE-AD STRIP (own products, NOT a Google ad) ============ */
+  .house-ad {
+    width: min(96vw, 960px);
+    margin-top: 14px;
+    padding: 14px 16px 16px;
+    border: 1px solid rgba(240, 165, 0, 0.55);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(240, 165, 0, 0.10), rgba(5, 10, 25, 0.6));
+  }
+  .house-ad-label {
+    color: #f0a500;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .house-ad-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .house-card {
+    flex: 1 1 240px;
+    max-width: 300px;
+    display: block;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 229, 255, 0.30);
+    background: rgba(5, 10, 25, 0.85);
+    color: #eaf6ff;
+    text-decoration: none;
+    text-align: center;
+  }
+  .house-card:hover { border-color: #f0a500; }
+  .house-card strong { display: block; font-size: 15px; color: #9beaff; margin-bottom: 4px; }
+  .house-card span { display: block; font-size: 13px; color: #b9d9ea; }
+</style>
+</head>
+<body>
+  <!-- ================= AD SLOT: ABOVE THE GAME =================
+       Responsive AdSense display unit. Sits ABOVE the game only.
+       TODO: replace data-ad-slot="0000000000" with a real ad slot ID
+       from your AdSense dashboard (Ads > By ad unit > Display ads).
+       AdSense policy: never move this unit over the canvas or controls,
+       never ask players to click it, never gate gameplay behind it. -->
+  <div class="ad-slot" role="complementary" aria-label="Advertisement">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7363635746119645"
+         data-ad-slot="0000000000"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+  <div id="wrap">
+    <canvas id="game" width="1440" height="960"></canvas>
+    <button class="hud-btn" id="pauseBtn" title="Pause (P / Esc)">&#10073;&#10073;</button>
+    <button class="hud-btn" id="muteBtn" title="Mute (M)">&#128266;</button>
+  </div>
+  <div id="hint">MOUSE / TOUCH / ARROW KEYS &nbsp;&middot;&nbsp; CLICK OR SPACE TO LAUNCH &nbsp;&middot;&nbsp; P = PAUSE &nbsp;&middot;&nbsp; M = MUTE</div>
+  <!-- ================= AD SLOT: BELOW THE GAME =================
+       Responsive AdSense display unit. Sits BELOW the game only.
+       TODO: replace data-ad-slot="0000000000" with a real ad slot ID
+       from your AdSense dashboard (Ads > By ad unit > Display ads).
+       Same policy rules as the top slot: no overlap, no click incentives. -->
+  <div class="ad-slot ad-slot-bottom" role="complementary" aria-label="Advertisement">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-7363635746119645"
+         data-ad-slot="0000000000"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+  <!-- ================= HOUSE-AD STRIP (own products) =================
+       This is NOT a Google ad: it promotes Syed Ventures' own Gumroad
+       products and is labelled as such, so it can never be mistaken for
+       an AdSense unit. It shows even when AdSense does not fill, so the
+       page always earns attention. Links open in a new tab so the game
+       is never interrupted. -->
+  <section class="house-ad" aria-label="From Syed Ventures">
+    <div class="house-ad-label">From Syed Ventures — our own study tools</div>
+    <div class="house-ad-cards">
+      <a class="house-card" href="https://syedventures.gumroad.com/l/wnqwkw" target="_blank" rel="noopener">
+        <strong>Florida Real Estate Exam Practice Pack</strong>
+        <span>150 questions with answers &amp; explanations — $14.99</span>
+      </a>
+      <a class="house-card" href="https://syedventures.gumroad.com/l/mathworkbook" target="_blank" rel="noopener">
+        <strong>Florida Real Estate Exam Math Workbook</strong>
+        <span>72 problems with worked solutions — $9.99</span>
+      </a>
+      <a class="house-card" href="https://syedventures.gumroad.com/l/cheatsheets" target="_blank" rel="noopener">
+        <strong>Florida Real Estate Exam Cheat Sheets</strong>
+        <span>6 quick-reference cards — $7.99</span>
+      </a>
+    </div>
+  </section>
+
+<script>
+'use strict';
+/* =====================================================================
+   NEON BREAKER — a neon Breakout / Arkanoid
+   Single-file game: canvas rendering, WebAudio synth SFX, localStorage
+   high score. Logical playfield is 960 x 640; the canvas backing store
+   is 1.5x that for crisp rendering, and CSS scales it to the screen.
+   ===================================================================== */
+
+/* ================= CONFIG ================= */
+const W = 960, H = 640;              // logical playfield size
+const RENDER_SCALE = 1.5;            // canvas backing-store multiplier
+const WALL = 14;                     // side/top wall thickness
+const PADDLE_Y = H - 42;
+const PADDLE_H = 14;
+const PADDLE_W_NORMAL = 112;
+const PADDLE_W_WIDE = 176;
+const BALL_R = 8;
+const BRICK_COLS = 12;
+const BRICK_TOP = 96;
+const BRICK_H = 24;
+const BRICK_GAP = 4;
+const BRICK_W = (W - WALL * 2 - BRICK_GAP * (BRICK_COLS - 1)) / BRICK_COLS;
+const POWER_DROP_CHANCE = 0.22;
+const HS_KEY = 'neonBreakerHighScore';
+
+/* Brick row color palette (neon) */
+const ROW_COLORS = ['#ff2d78', '#ff9f1a', '#ffe600', '#2bff62', '#00e5ff', '#7d5bff', '#ff5bff', '#00ffd0'];
+
+/* Power-up definitions: letter shown on the capsule + color */
+const POWER_TYPES = {
+  W: { name: 'WIDE',   color: '#00e5ff' },  // wider paddle (timed)
+  M: { name: 'MULTI',  color: '#ff5bff' },  // split balls into 3
+  S: { name: 'SLOW',   color: '#5b8cff' },  // slow balls (timed)
+  L: { name: 'LIFE',   color: '#2bff62' },  // extra life
+  G: { name: 'LASER',  color: '#ff9f1a' },  // paddle lasers (timed)
+  T: { name: 'STICKY', color: '#ffe600' }   // sticky paddle (timed)
+};
+const POWER_KEYS = Object.keys(POWER_TYPES);
+const EFFECT_TIME = { W: 12, S: 9, G: 10, T: 12 }; // seconds for timed effects
+
+/* ================= CANVAS ================= */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
+
+/* ================= AUDIO (WebAudio synth, no files) ================= */
+let audioCtx = null;
+let muted = false;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+/* One synthesized tone. freq slides to freqEnd if given. */
+function tone(freq, dur, type, vol, freqEnd, delay) {
+  if (!audioCtx || muted) return;
+  const t0 = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'square';
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freqEnd), t0 + dur);
+  gain.gain.setValueAtTime(vol || 0.12, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+
+const sfx = {
+  paddle:  () => tone(210, 0.07, 'square', 0.10, 320),
+  wall:    () => tone(160, 0.05, 'square', 0.06, 200),
+  brick:   (combo) => tone(340 + Math.min(combo, 12) * 35, 0.09, 'square', 0.11, 180),
+  tough:   () => tone(140, 0.08, 'sawtooth', 0.10, 90),
+  clank:   () => tone(90, 0.06, 'sawtooth', 0.09, 60),
+  laser:   () => tone(920, 0.08, 'sawtooth', 0.05, 240),
+  power:   () => { tone(520, 0.09, 'square', 0.11); tone(660, 0.09, 'square', 0.11, null, 0.07); tone(880, 0.14, 'square', 0.11, null, 0.14); },
+  launch:  () => tone(300, 0.08, 'square', 0.08, 520),
+  lose:    () => { tone(420, 0.35, 'sawtooth', 0.13, 70); tone(210, 0.4, 'sawtooth', 0.10, 50, 0.1); },
+  clear:   () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'square', 0.11, null, i * 0.1)); },
+  over:    () => { [392, 330, 262, 196].forEach((f, i) => tone(f, 0.25, 'triangle', 0.13, null, i * 0.16)); },
+  win:     () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.2, 'square', 0.11, null, i * 0.11)); },
+  click:   () => tone(600, 0.05, 'square', 0.08, 800)
+};
+
+/* ================= LEVELS =================
+   Layout legend: '.' empty | '1' normal (1 hit) | '2' tough (2 hits) | 'X' unbreakable
+   Each string is one row of 12 bricks. */
+const LEVELS = [
+  { name: 'FIRST CONTACT', rows: [
+    '111111111111',
+    '111111111111',
+    '222222222222',
+    '111111111111',
+    '111111111111' ] },
+  { name: 'CHECKERBOARD', rows: [
+    '1.1.1.1.1.1.',
+    '.1.1.1.1.1.1',
+    '1.1.2.2.1.1.',
+    '.1.1.1.1.1.1',
+    '1.1.1.1.1.1.',
+    '.2.2.2.2.2.2' ] },
+  { name: 'THE DIAMOND', rows: [
+    '.....11.....',
+    '....1221....',
+    '...122221...',
+    '..122222221.',
+    '...122221...',
+    '....1221....',
+    '.....11.....' ] },
+  { name: 'PILLARS', rows: [
+    '22..22..22..',
+    '22..22..22..',
+    '22..22..22..',
+    '11..11..11..',
+    '11..11..11..',
+    '222222222222',
+    '111111111111' ] },
+  { name: 'THE FORTRESS', rows: [
+    'X.11111111.X',
+    'X1222222221X',
+    'X12XXXXXX21X',
+    'X1222222221X',
+    'X.11111111.X',
+    '..22222222..' ] },
+  { name: 'INVADER', rows: [
+    '.1..1111..1.',
+    '..11111111..',
+    '.1222222221.',
+    '111211221111',
+    '...1....1...',
+    '..1..XX..1..',
+    '.1..1..1..1.' ] },
+  { name: 'CROSSFIRE', rows: [
+    '2.1.1..1.1.2',
+    '.2.1.11.1.2.',
+    '..2.1111.2..',
+    '1112XXXX2111',
+    '..2.1111.2..',
+    '.2.1.11.1.2.',
+    '2.1.1..1.1.2' ] },
+  { name: 'NEON CORE', rows: [
+    'X2222222222X',
+    '211111111112',
+    '21X222222X12',
+    '212111111212',
+    '2121XXXX1212',
+    '212111111212',
+    '21X222222X12',
+    '211111111112' ] }
+];
+
+/* ================= GAME STATE ================= */
+const STATE = { MENU: 0, PLAYING: 1, PAUSED: 2, INTRO: 3, OVER: 4, WIN: 5 };
+let state = STATE.MENU;
+
+let score = 0;
+let highScore = 0;
+try { highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0; } catch (e) { highScore = 0; }
+let lives = 3;
+let levelIndex = 0;
+let combo = 0;               // consecutive brick hits without touching the paddle
+let shake = 0;               // screen-shake magnitude (px), decays over time
+let introTimer = 0;
+let timeAlive = 0;           // total run time (for game-over screen flavor)
+
+const paddle = { x: W / 2, w: PADDLE_W_NORMAL, speed: 0, targetX: null };
+let balls = [];              // {x,y,vx,vy,stuck,offsetX,trail:[]}
+let bricks = [];             // {x,y,w,h,hp,maxHp,type,color,alive}
+let powerups = [];           // {x,y,type,vy}
+let particles = [];          // {x,y,vx,vy,life,maxLife,color,size}
+let lasers = [];             // {x,y}
+let effects = { W: 0, S: 0, G: 0, T: 0 };  // remaining seconds per timed effect
+let laserCooldown = 0;
+
+const keys = { left: false, right: false };
+
+function ballSpeedForLevel(idx) { return 400 + idx * 32; }  // px/s, ramps per level
+let curBallSpeed = ballSpeedForLevel(0);
+
+function comboMult() { return 1 + Math.floor(combo / 5); }  // x1, x2 at 5 hits, x3 at 10...
+
+/* ================= SETUP / FLOW ================= */
+function buildLevel(idx) {
+  bricks = [];
+  const def = LEVELS[idx];
+  def.rows.forEach((rowStr, r) => {
+    for (let c = 0; c < BRICK_COLS; c++) {
+      const ch = rowStr[c] || '.';
+      if (ch === '.') continue;
+      const type = ch === 'X' ? 'X' : (ch === '2' ? 2 : 1);
+      bricks.push({
+        x: WALL + c * (BRICK_W + BRICK_GAP),
+        y: BRICK_TOP + r * (BRICK_H + BRICK_GAP),
+        w: BRICK_W, h: BRICK_H,
+        hp: type === 'X' ? Infinity : type,
+        maxHp: type === 'X' ? Infinity : type,
+        type: type,
+        color: ROW_COLORS[r % ROW_COLORS.length],
+        alive: true
+      });
+    }
+  });
+}
+
+function makeBall(x, y, angleDeg, speed) {
+  const a = angleDeg * Math.PI / 180;
+  return { x: x, y: y, vx: Math.sin(a) * speed, vy: -Math.cos(a) * speed, stuck: false, offsetX: 0, trail: [] };
+}
+
+function resetBallOnPaddle() {
+  balls = [makeBall(paddle.x, PADDLE_Y - BALL_R - 1, 0, curBallSpeed)];
+  balls[0].stuck = true;
+  balls[0].offsetX = 0;
+}
+
+function resetEffects() { effects = { W: 0, S: 0, G: 0, T: 0 }; lasers = []; laserCooldown = 0; }
+
+function startGame() {
+  score = 0; lives = 3; levelIndex = 0; combo = 0; timeAlive = 0;
+  curBallSpeed = ballSpeedForLevel(0);
+  paddle.w = PADDLE_W_NORMAL; paddle.x = W / 2;
+  resetEffects(); powerups = []; particles = [];
+  buildLevel(0);
+  resetBallOnPaddle();
+  state = STATE.INTRO; introTimer = 1.6;
+}
+
+function nextLevel() {
+  levelIndex++;
+  if (levelIndex >= LEVELS.length) { state = STATE.WIN; sfx.win(); saveHigh(); return; }
+  curBallSpeed = ballSpeedForLevel(levelIndex);
+  combo = 0;
+  resetEffects(); powerups = []; lasers = [];
+  paddle.w = PADDLE_W_NORMAL;
+  buildLevel(levelIndex);
+  resetBallOnPaddle();
+  state = STATE.INTRO; introTimer = 1.6;
+}
+
+function loseLife() {
+  lives--;
+  sfx.lose();
+  shake = Math.max(shake, 10);
+  combo = 0;
+  resetEffects();
+  paddle.w = PADDLE_W_NORMAL;
+  powerups = []; lasers = [];
+  if (lives <= 0) {
+    state = STATE.OVER;
+    sfx.over();
+    saveHigh();
+  } else {
+    resetBallOnPaddle();
+  }
+}
+
+function saveHigh() {
+  if (score > highScore) {
+    highScore = score;
+    try { localStorage.setItem(HS_KEY, String(highScore)); } catch (e) { /* storage unavailable */ }
+  }
+}
+
+function breakableLeft() { return bricks.some(b => b.alive && b.type !== 'X'); }
+
+/* ================= INPUT ================= */
+function canvasPos(clientX) {
+  const r = canvas.getBoundingClientRect();
+  return (clientX - r.left) * (W / r.width);
+}
+
+canvas.addEventListener('mousemove', (e) => { paddle.targetX = canvasPos(e.clientX); });
+canvas.addEventListener('mousedown', (e) => { ensureAudio(); primaryAction(); });
+canvas.addEventListener('touchstart', (e) => {
+  ensureAudio();
+  const t = e.touches[0];
+  if (t) paddle.targetX = canvasPos(t.clientX);
+  primaryAction();
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', (e) => {
+  const t = e.touches[0];
+  if (t) paddle.targetX = canvasPos(t.clientX);
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft')  { keys.left = true;  e.preventDefault(); }
+  if (e.key === 'ArrowRight') { keys.right = true; e.preventDefault(); }
+  if (e.key === ' ' || e.key === 'ArrowUp') { ensureAudio(); primaryAction(); e.preventDefault(); }
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') togglePause();
+  if (e.key === 'm' || e.key === 'M') toggleMute();
+  if (e.key === 'Enter') { ensureAudio(); primaryAction(); }
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'ArrowLeft') keys.left = false;
+  if (e.key === 'ArrowRight') keys.right = false;
+});
+
+/* The "do something" button: start / launch ball / unpause / restart */
+function primaryAction() {
+  if (state === STATE.MENU) { sfx.click(); startGame(); return; }
+  if (state === STATE.OVER || state === STATE.WIN) { sfx.click(); startGame(); return; }
+  if (state === STATE.INTRO) { state = STATE.PLAYING; launchStuckBalls(); return; }
+  if (state === STATE.PAUSED) { state = STATE.PLAYING; return; }
+  if (state === STATE.PLAYING) launchStuckBalls();
+}
+
+function launchStuckBalls() {
+  let launched = false;
+  for (const b of balls) {
+    if (b.stuck) {
+      b.stuck = false;
+      const off = Math.max(-1, Math.min(1, b.offsetX / (paddle.w / 2)));
+      const angle = off * 55;
+      const sp = Math.hypot(b.vx, b.vy) || curBallSpeed;
+      b.vx = Math.sin(angle * Math.PI / 180) * sp;
+      b.vy = -Math.cos(angle * Math.PI / 180) * sp;
+      launched = true;
+    }
+  }
+  if (launched) sfx.launch();
+}
+
+function togglePause() {
+  if (state === STATE.PLAYING) state = STATE.PAUSED;
+  else if (state === STATE.PAUSED) state = STATE.PLAYING;
+}
+
+function toggleMute() {
+  muted = !muted;
+  document.getElementById('muteBtn').innerHTML = muted ? '&#128263;' : '&#128266;';
+}
+
+document.getElementById('muteBtn').addEventListener('click', (e) => { e.stopPropagation(); ensureAudio(); toggleMute(); });
+document.getElementById('pauseBtn').addEventListener('click', (e) => { e.stopPropagation(); ensureAudio(); togglePause(); });
+
+/* ================= PARTICLES & JUICE ================= */
+function burst(x, y, color, n, power) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = (40 + Math.random() * 190) * (power || 1);
+    particles.push({
+      x: x, y: y,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+      life: 0, maxLife: 0.35 + Math.random() * 0.4,
+      color: color, size: 2 + Math.random() * 3.5
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life += dt;
+    if (p.life >= p.maxLife) { particles.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vy += 320 * dt;               // slight gravity
+    p.vx *= (1 - 1.6 * dt);         // drag
+  }
+}
+
+/* ================= POWER-UPS ================= */
+function maybeDropPower(x, y) {
+  if (Math.random() > POWER_DROP_CHANCE) return;
+  const type = POWER_KEYS[Math.floor(Math.random() * POWER_KEYS.length)];
+  powerups.push({ x: x, y: y, type: type, vy: 165 });
+}
+
+function applyPower(type) {
+  sfx.power();
+  burst(paddle.x, PADDLE_Y, POWER_TYPES[type].color, 16, 1);
+  if (type === 'L') { lives++; return; }
+  if (type === 'M') {
+    // Split every live ball into 3 (cap total balls for sanity/perf)
+    const src = balls.filter(b => !b.stuck);
+    const base = src.length ? src : balls;
+    const additions = [];
+    for (const b of base) {
+      if (balls.length + additions.length >= 9) break;
+      const sp = Math.hypot(b.vx, b.vy) || curBallSpeed;
+      const cur = Math.atan2(b.vy, b.vx);
+      for (const da of [-0.45, 0.45]) {
+        if (balls.length + additions.length >= 9) break;
+        additions.push({
+          x: b.x, y: b.y,
+          vx: Math.cos(cur + da) * sp, vy: Math.sin(cur + da) * sp,
+          stuck: false, offsetX: 0, trail: []
+        });
+      }
+    }
+    balls = balls.concat(additions);
+    return;
+  }
+  effects[type] = EFFECT_TIME[type];       // W, S, G, T are timed
+  if (type === 'W') paddle.w = PADDLE_W_WIDE;
+}
+
+function updatePowerups(dt) {
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+    p.y += p.vy * dt;
+    // Caught by the paddle?
+    if (p.y + 12 >= PADDLE_Y && p.y - 12 <= PADDLE_Y + PADDLE_H &&
+        Math.abs(p.x - paddle.x) <= paddle.w / 2 + 12) {
+      applyPower(p.type);
+      powerups.splice(i, 1);
+      continue;
+    }
+    if (p.y > H + 20) powerups.splice(i, 1);
+  }
+}
+
+/* ================= BRICK DAMAGE ================= */
+function damageBrick(br, sourceX) {
+  if (br.type === 'X') { sfx.clank(); burst(sourceX, br.y + br.h / 2, '#9fb4c8', 4, 0.5); return; }
+  br.hp--;
+  if (br.hp > 0) {                          // tough brick survives, cracks
+    sfx.tough();
+    burst(sourceX, br.y + br.h / 2, br.color, 6, 0.7);
+    shake = Math.max(shake, 3);
+    return;
+  }
+  br.alive = false;
+  combo++;
+  const base = br.maxHp === 2 ? 100 : 50;
+  score += base * comboMult();
+  sfx.brick(combo);
+  burst(br.x + br.w / 2, br.y + br.h / 2, br.color, 13, 1);
+  shake = Math.max(shake, 2.5);
+  maybeDropPower(br.x + br.w / 2, br.y + br.h / 2);
+  if (!breakableLeft()) {
+    saveHigh();
+    sfx.clear();
+    burst(W / 2, H / 2, '#ffffff', 60, 1.8);
+    nextLevel();
+  }
+}
+
+/* ================= UPDATE ================= */
+function update(dt) {
+  timeAlive += dt;
+  updateParticles(dt);
+  if (shake > 0) shake = Math.max(0, shake - 34 * dt);
+
+  if (state === STATE.INTRO) {
+    introTimer -= dt;
+    if (introTimer <= 0) state = STATE.PLAYING;
+    return;
+  }
+  if (state !== STATE.PLAYING) return;
+
+  /* --- effect timers --- */
+  for (const k of Object.keys(effects)) {
+    if (effects[k] > 0) {
+      effects[k] -= dt;
+      if (effects[k] <= 0) {
+        effects[k] = 0;
+        if (k === 'W') paddle.w = PADDLE_W_NORMAL;
+        if (k === 'G') lasers = [];
+      }
+    }
+  }
+  const speedMul = effects.S > 0 ? 0.6 : 1;
+
+  /* --- paddle movement (keys have priority, then pointer target) --- */
+  const KEY_SPEED = 760;
+  if (keys.left)  { paddle.x -= KEY_SPEED * dt; paddle.targetX = null; }
+  if (keys.right) { paddle.x += KEY_SPEED * dt; paddle.targetX = null; }
+  if (paddle.targetX !== null) {
+    const dx = paddle.targetX - paddle.x;
+    paddle.x += dx * Math.min(1, dt * 22);   // snappy follow
+  }
+  paddle.x = Math.max(WALL + paddle.w / 2, Math.min(W - WALL - paddle.w / 2, paddle.x));
+
+  /* --- lasers --- */
+  if (effects.G > 0) {
+    laserCooldown -= dt;
+    if (laserCooldown <= 0) {
+      laserCooldown = 0.22;
+      lasers.push({ x: paddle.x - paddle.w / 2 + 8, y: PADDLE_Y - 6 });
+      lasers.push({ x: paddle.x + paddle.w / 2 - 8, y: PADDLE_Y - 6 });
+      sfx.laser();
+    }
+  }
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    const l = lasers[i];
+    l.y -= 640 * dt;
+    let consumed = l.y < WALL;
+    if (!consumed) {
+      for (const br of bricks) {
+        if (!br.alive) continue;
+        if (l.x >= br.x && l.x <= br.x + br.w && l.y >= br.y && l.y <= br.y + br.h) {
+          damageBrick(br, l.x);
+          consumed = true;
+          break;
+        }
+      }
+    }
+    if (consumed) lasers.splice(i, 1);
+    if (state !== STATE.PLAYING) return; // a laser may have ended the level
+  }
+
+  /* --- balls --- */
+  for (let bi = balls.length - 1; bi >= 0; bi--) {
+    const b = balls[bi];
+
+    if (b.stuck) {
+      b.x = paddle.x + b.offsetX;
+      b.y = PADDLE_Y - BALL_R - 1;
+      continue;
+    }
+
+    b.x += b.vx * speedMul * dt;
+    b.y += b.vy * speedMul * dt;
+
+    // trail (juice)
+    b.trail.push({ x: b.x, y: b.y });
+    if (b.trail.length > 11) b.trail.shift();
+
+    // walls
+    if (b.x < WALL + BALL_R)          { b.x = WALL + BALL_R;          b.vx =  Math.abs(b.vx); sfx.wall(); }
+    if (b.x > W - WALL - BALL_R)      { b.x = W - WALL - BALL_R;      b.vx = -Math.abs(b.vx); sfx.wall(); }
+    if (b.y < WALL + BALL_R)          { b.y = WALL + BALL_R;          b.vy =  Math.abs(b.vy); sfx.wall(); }
+
+    // floor: ball lost
+    if (b.y > H + 30) {
+      balls.splice(bi, 1);
+      if (balls.length === 0) { loseLife(); return; }
+      continue;
+    }
+
+    // paddle collision (only while moving down)
+    if (b.vy > 0 &&
+        b.y + BALL_R >= PADDLE_Y && b.y - BALL_R <= PADDLE_Y + PADDLE_H + 2 &&
+        Math.abs(b.x - paddle.x) <= paddle.w / 2 + BALL_R) {
+      if (effects.T > 0) {
+        b.stuck = true;
+        b.offsetX = b.x - paddle.x;
+        b.y = PADDLE_Y - BALL_R - 1;
+        sfx.paddle();
+      } else {
+        const rel = Math.max(-1, Math.min(1, (b.x - paddle.x) / (paddle.w / 2)));
+        const angle = rel * 65;                       // max bounce angle from vertical
+        const sp = Math.min(Math.hypot(b.vx, b.vy) * 1.004, 1050); // tiny speed-up per paddle hit
+        b.vx = Math.sin(angle * Math.PI / 180) * sp;
+        b.vy = -Math.cos(angle * Math.PI / 180) * sp;
+        b.y = PADDLE_Y - BALL_R - 1;
+        combo = 0;                                    // combo resets on paddle touch
+        sfx.paddle();
+        burst(b.x, PADDLE_Y, '#00e5ff', 4, 0.5);
+      }
+    }
+
+    // brick collisions (circle vs rect, resolve along the smaller overlap)
+    for (const br of bricks) {
+      if (!br.alive) continue;
+      const nearX = Math.max(br.x, Math.min(b.x, br.x + br.w));
+      const nearY = Math.max(br.y, Math.min(b.y, br.y + br.h));
+      const dx = b.x - nearX, dy = b.y - nearY;
+      if (dx * dx + dy * dy <= BALL_R * BALL_R) {
+        const overlapX = (br.w / 2 + BALL_R) - Math.abs(b.x - (br.x + br.w / 2));
+        const overlapY = (br.h / 2 + BALL_R) - Math.abs(b.y - (br.y + br.h / 2));
+        if (overlapX < overlapY) b.vx = (b.x < br.x + br.w / 2) ? -Math.abs(b.vx) : Math.abs(b.vx);
+        else                     b.vy = (b.y < br.y + br.h / 2) ? -Math.abs(b.vy) : Math.abs(b.vy);
+        damageBrick(br, b.x);
+        break; // one brick per ball per frame is enough
+      }
+    }
+    if (state !== STATE.PLAYING) return; // brick may have ended the level
+  }
+
+  updatePowerups(dt);
+
+  // gentle difficulty creep: nudge all live balls a hair faster over time
+  curBallSpeed = Math.min(curBallSpeed + dt * 1.1, 980);
+}
+
+/* ================= RENDER ================= */
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function neonText(text, x, y, size, color, align) {
+  ctx.save();
+  ctx.font = 'bold ' + size + 'px "Trebuchet MS", "Segoe UI", sans-serif';
+  ctx.textAlign = align || 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.globalAlpha = 0.25;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#070a1d');
+  g.addColorStop(0.6, '#05060f');
+  g.addColorStop(1, '#0a0518');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // faint grid
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,229,255,0.05)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = WALL; x <= W - WALL; x += 48) { ctx.moveTo(x, WALL); ctx.lineTo(x, H); }
+  for (let y = WALL; y <= H; y += 48) { ctx.moveTo(WALL, y); ctx.lineTo(W - WALL, y); }
+  ctx.stroke();
+  ctx.restore();
+  // walls
+  ctx.save();
+  ctx.fillStyle = '#0e2a3f';
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 12;
+  ctx.fillRect(0, 0, WALL, H);
+  ctx.fillRect(W - WALL, 0, WALL, H);
+  ctx.fillRect(0, 0, W, WALL);
+  ctx.restore();
+}
+
+function drawBricks() {
+  for (const br of bricks) {
+    if (!br.alive) continue;
+    ctx.save();
+    if (br.type === 'X') {
+      ctx.fillStyle = '#3a4356';
+      ctx.shadowColor = '#9fb4c8'; ctx.shadowBlur = 6;
+      rr(br.x, br.y, br.w, br.h, 5); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#9fb4c8'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(br.x + 6, br.y + 6); ctx.lineTo(br.x + br.w - 6, br.y + br.h - 6);
+      ctx.moveTo(br.x + br.w - 6, br.y + 6); ctx.lineTo(br.x + 6, br.y + br.h - 6);
+      ctx.stroke();
+    } else {
+      const cracked = br.maxHp === 2 && br.hp === 1;
+      ctx.globalAlpha = cracked ? 0.55 : 1;
+      ctx.fillStyle = br.color;
+      ctx.shadowColor = br.color; ctx.shadowBlur = 14;
+      rr(br.x, br.y, br.w, br.h, 5); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      rr(br.x + 3, br.y + 3, br.w - 6, 7, 3); ctx.fill();
+      if (br.maxHp === 2 && !cracked) {   // tough brick inner core
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+        rr(br.x + 5, br.y + 5, br.w - 10, br.h - 10, 3); ctx.stroke();
+      }
+      if (cracked) {                     // crack lines
+        ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(br.x + br.w * 0.2, br.y + 3);
+        ctx.lineTo(br.x + br.w * 0.45, br.y + br.h * 0.55);
+        ctx.lineTo(br.x + br.w * 0.35, br.y + br.h - 3);
+        ctx.moveTo(br.x + br.w * 0.45, br.y + br.h * 0.55);
+        ctx.lineTo(br.x + br.w * 0.75, br.y + br.h * 0.4);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function drawPaddle() {
+  const x = paddle.x - paddle.w / 2;
+  ctx.save();
+  const grad = ctx.createLinearGradient(x, PADDLE_Y, x, PADDLE_Y + PADDLE_H);
+  grad.addColorStop(0, '#b8f6ff');
+  grad.addColorStop(0.45, '#00e5ff');
+  grad.addColorStop(1, '#0077aa');
+  ctx.fillStyle = grad;
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 18;
+  rr(x, PADDLE_Y, paddle.w, PADDLE_H, 7); ctx.fill();
+  ctx.shadowBlur = 0;
+  if (effects.T > 0) {  // sticky: glowing top strip
+    ctx.fillStyle = '#ffe600';
+    rr(x + 4, PADDLE_Y - 3, paddle.w - 8, 4, 2); ctx.fill();
+  }
+  if (effects.G > 0) {  // laser cannons
+    ctx.fillStyle = '#ff9f1a';
+    ctx.shadowColor = '#ff9f1a'; ctx.shadowBlur = 10;
+    ctx.fillRect(x + 3, PADDLE_Y - 9, 9, 9);
+    ctx.fillRect(x + paddle.w - 12, PADDLE_Y - 9, 9, 9);
+  }
+  ctx.restore();
+}
+
+function drawBalls() {
+  for (const b of balls) {
+    ctx.save();
+    // trail
+    for (let i = 0; i < b.trail.length; i++) {
+      const t = b.trail[i];
+      const f = i / b.trail.length;
+      ctx.globalAlpha = f * 0.30;
+      ctx.fillStyle = '#00e5ff';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, BALL_R * (0.35 + 0.6 * f), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#aef4ff'; ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawPowerups() {
+  for (const p of powerups) {
+    const def = POWER_TYPES[p.type];
+    ctx.save();
+    ctx.fillStyle = 'rgba(5,10,25,0.9)';
+    ctx.strokeStyle = def.color; ctx.lineWidth = 2;
+    ctx.shadowColor = def.color; ctx.shadowBlur = 13;
+    rr(p.x - 17, p.y - 12, 34, 24, 11);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 15px "Trebuchet MS", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = def.color;
+    ctx.fillText(p.type, p.x, p.y + 1);
+    ctx.restore();
+  }
+}
+
+function drawLasers() {
+  ctx.save();
+  ctx.fillStyle = '#ffd28a';
+  ctx.shadowColor = '#ff9f1a'; ctx.shadowBlur = 10;
+  for (const l of lasers) ctx.fillRect(l.x - 2, l.y - 11, 4, 12);
+  ctx.restore();
+}
+
+function drawParticles() {
+  ctx.save();
+  for (const p of particles) {
+    const f = 1 - p.life / p.maxLife;
+    ctx.globalAlpha = Math.max(0, f);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  }
+  ctx.restore();
+}
+
+function drawHUD() {
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 21px "Trebuchet MS", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#9beaff';
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 8;
+  ctx.fillText('SCORE ' + score, WALL + 14, 42);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff5bff';
+  ctx.shadowColor = '#ff5bff';
+  ctx.fillText('BEST ' + highScore, W / 2, 42);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#9beaff';
+  ctx.shadowColor = '#00e5ff';
+  ctx.fillText('LEVEL ' + (levelIndex + 1), W - WALL - 14 - 108, 42);
+  ctx.shadowBlur = 0;
+  // lives as mini balls
+  for (let i = 0; i < lives; i++) {
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#aef4ff'; ctx.shadowBlur = 9;
+    ctx.beginPath();
+    ctx.arc(W - WALL - 26 - i * 26, 42, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // combo indicator
+  if (combo >= 3 && state === STATE.PLAYING) {
+    ctx.textAlign = 'center';
+    neonText('COMBO x' + comboMult() + '  (' + combo + ' hits)', W / 2, 74, 17, '#ffe600');
+  }
+  // active effect timers
+  let ex = WALL + 14;
+  ctx.textAlign = 'left';
+  for (const k of Object.keys(effects)) {
+    if (effects[k] > 0) {
+      const def = POWER_TYPES[k];
+      const frac = effects[k] / EFFECT_TIME[k];
+      ctx.fillStyle = def.color;
+      ctx.font = 'bold 13px "Trebuchet MS", sans-serif';
+      ctx.fillText(def.name, ex, H - 16);
+      ctx.fillRect(ex, H - 8, 54 * frac, 4);
+      ex += 118;
+    }
+  }
+  ctx.restore();
+}
+
+function dimScreen(alpha) {
+  ctx.fillStyle = 'rgba(2,3,10,' + alpha + ')';
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawMenu() {
+  dimScreen(0.45);
+  neonText('NEON', W / 2, 168, 92, '#00e5ff');
+  neonText('BREAKER', W / 2, 252, 92, '#ff2d78');
+  neonText('HIGH SCORE: ' + highScore, W / 2, 336, 24, '#ffe600');
+  const lines = [
+    'Break every brick. Don\'t drop the ball.',
+    '',
+    'MOUSE / TOUCH / ARROWS — move paddle',
+    'CLICK / SPACE — launch ball',
+    'Catch falling capsules for power-ups:',
+    'WIDE · MULTI-BALL · SLOW · LASER · STICKY · +LIFE',
+    'Chain brick hits to build your COMBO multiplier.',
+    '',
+    'P pause · M mute'
+  ];
+  ctx.save();
+  ctx.font = '19px "Trebuchet MS", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#b9d9ea';
+  lines.forEach((ln, i) => ctx.fillText(ln, W / 2, 392 + i * 27));
+  ctx.restore();
+  if (Math.floor(performance.now() / 550) % 2 === 0)
+    neonText('— CLICK OR PRESS SPACE TO START —', W / 2, 392 + lines.length * 27 + 26, 22, '#2bff62');
+}
+
+function drawIntro() {
+  dimScreen(0.55);
+  neonText('LEVEL ' + (levelIndex + 1), W / 2, 268, 54, '#00e5ff');
+  neonText(LEVELS[levelIndex].name, W / 2, 330, 30, '#ff5bff');
+  neonText('click to launch', W / 2, 392, 19, '#b9d9ea');
+}
+
+function drawPaused() {
+  dimScreen(0.6);
+  neonText('PAUSED', W / 2, 300, 56, '#ffe600');
+  neonText('press P or click to resume', W / 2, 362, 20, '#b9d9ea');
+}
+
+function drawOver() {
+  dimScreen(0.68);
+  neonText('GAME OVER', W / 2, 236, 64, '#ff2d78');
+  neonText('SCORE: ' + score, W / 2, 322, 30, '#ffffff');
+  if (score >= highScore && score > 0) neonText('NEW BEST!', W / 2, 364, 24, '#ffe600');
+  else neonText('BEST: ' + highScore, W / 2, 364, 22, '#9beaff');
+  neonText('click or press space to play again', W / 2, 448, 20, '#2bff62');
+}
+
+function drawWin() {
+  dimScreen(0.68);
+  neonText('YOU WIN!', W / 2, 222, 68, '#2bff62');
+  neonText('ALL ' + LEVELS.length + ' LEVELS CLEARED', W / 2, 292, 26, '#00e5ff');
+  neonText('FINAL SCORE: ' + score, W / 2, 348, 30, '#ffffff');
+  if (score >= highScore && score > 0) neonText('NEW BEST!', W / 2, 390, 24, '#ffe600');
+  neonText('click or press space to play again', W / 2, 452, 20, '#2bff62');
+}
+
+function render() {
+  ctx.save();
+  if (shake > 0.2) {
+    ctx.translate((Math.random() - 0.5) * 2 * shake, (Math.random() - 0.5) * 2 * shake);
+  }
+  drawBackground();
+  drawBricks();
+  drawPowerups();
+  drawLasers();
+  if (state !== STATE.MENU) drawPaddle();
+  drawBalls();
+  drawParticles();
+  ctx.restore();
+
+  drawHUD();
+  if (state === STATE.MENU) drawMenu();
+  else if (state === STATE.INTRO) drawIntro();
+  else if (state === STATE.PAUSED) drawPaused();
+  else if (state === STATE.OVER) drawOver();
+  else if (state === STATE.WIN) drawWin();
+  if (muted) {
+    ctx.save();
+    ctx.font = 'bold 15px "Trebuchet MS", sans-serif';
+    ctx.textAlign = 'left'; ctx.fillStyle = '#5a7a94';
+    ctx.fillText('MUTED', WALL + 14, H - 16);
+    ctx.restore();
+  }
+}
+
+/* ================= MAIN LOOP ================= */
+let lastTs = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTs) / 1000 || 0, 0.033); // clamp big frame gaps
+  lastTs = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
